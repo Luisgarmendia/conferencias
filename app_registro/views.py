@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
-from .models import Participante
+from .models import Participante, Conferencista
 
 from telegram import Bot # pip install python-telegram-bot
 
@@ -109,3 +109,66 @@ def editar_participante(request, id):
     }
 
     return render(request, 'registro/participantes.html', ctx)
+    
+def conferencista(request):
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        apellido = request.POST.get('apellido')
+        experiencia = request.POST.get('experiencia')
+
+        p = Conferencista(nombre=nombre, apellido=apellido, experiencia=experiencia)
+        p.save()
+
+        msj = f'El Conferencista {nombre} {apellido} ha sido registrado con éxito.'
+        
+        messages.add_message(request, messages.INFO, msj)
+
+    activo = 'Conferencistas'
+    q = request.GET.get('q')
+
+    if q:
+        data = Conferencista.objects.filter(nombre__startswith=q).order_by('nombre')
+
+        '''
+            select * 
+            from participantes
+            where nombre like 'n%'
+        '''
+    else:
+        data = Conferencista.objects.all().order_by('nombre')
+
+    ctx = {
+        'activo': activo,
+        'conferencistas': data,
+        'q': q
+    }
+
+    return render(request, 'registro/conferencista.html', ctx)
+
+
+def eliminar_conferencista(request, id):
+    Conferencista.objects.get(pk=id).delete()
+    return redirect(reverse('conferencista'))
+
+
+def editar_conferencista(request, id):
+    conf = get_object_or_404(Conferencista, pk=id)
+
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        apellido = request.POST.get('apellido')
+        experiencia = request.POST.get('experiencia')
+
+        conf.nombre = nombre
+        conf.apellido = apellido
+        conf.experiencia = experiencia
+        conf.save()
+
+    data = Conferencista.objects.all().order_by('nombre')
+
+    ctx = {
+        'activo': 'conferencista',
+        'conferencistas': data,
+    }
+
+    return render(request, 'registro/conferencista.html', ctx)
